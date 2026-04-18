@@ -49,6 +49,7 @@ else {
 
 # Initialize output folder
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $summaryResults = @()
@@ -85,7 +86,7 @@ function Add-Metric {
 # Collect Summary Metrics
 # ============================================================
 
-Write-Host "Collecting summary metrics from output files..." -ForegroundColor Cyan
+Write-ToolkitLog -Message "Collecting summary metrics from output files..." -Level Progress
 Write-Host ""
 
 # --- Web Application Inventory ---
@@ -218,7 +219,7 @@ else {
 if ($summaryResults.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $summaryResults -OutputPath $OutputPath -ReportName "migration-summary"
     Write-Host ""
-    Write-Host "Summary report exported to: $reportPath" -ForegroundColor Green
+    Write-ToolkitLog -Message "Summary report exported to: $reportPath" -Level Success
 }
 
 # ============================================================
@@ -227,8 +228,7 @@ if ($summaryResults.Count -gt 0) {
 if ($ExportExcel) {
     if (Get-Module -ListAvailable -Name ImportExcel) {
         Write-Host ""
-        Write-Host "Generating Excel workbook..." -ForegroundColor Cyan
-
+    Write-ToolkitLog -Message "Generating Excel workbook..." -Level Progress
         $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
         $excelPath = Join-Path $OutputPath "migration-assessment-$timestamp.xlsx"
 
@@ -262,14 +262,14 @@ if ($ExportExcel) {
                 }
             }
 
-            Write-Host "Excel workbook saved to: $excelPath" -ForegroundColor Green
+            Write-ToolkitLog -Message "Excel workbook saved to: $excelPath" -Level Success
         }
         catch {
-            Write-Warning "Failed to generate Excel workbook: $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to generate Excel workbook: $($_.Exception.Message)" -Level Warning
         }
     }
     else {
-        Write-Warning "ImportExcel module not found. Skipping Excel export. Install with: Install-Module ImportExcel"
+        Write-ToolkitLog -Message "ImportExcel module not found. Skipping Excel export. Install with: Install-Module ImportExcel" -Level Warning
     }
 }
 
@@ -278,7 +278,7 @@ if ($ExportExcel) {
 # ============================================================
 if ($ExportHtml) {
     Write-Host ""
-    Write-Host "Generating HTML summary dashboard..." -ForegroundColor Cyan
+    Write-ToolkitLog -Message "Generating HTML summary dashboard..." -Level Progress
 
     $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
     $htmlPath = Join-Path $OutputPath "migration-summary-$timestamp.html"
@@ -359,13 +359,13 @@ if ($ExportHtml) {
 "@
 
         $htmlContent | Out-File -FilePath $htmlPath -Encoding UTF8
-        Write-Host "HTML summary dashboard saved to: $htmlPath" -ForegroundColor Green
+        Write-ToolkitLog -Message "HTML summary dashboard saved to: $htmlPath" -Level Success
     }
     catch {
-        Write-Warning "Failed to generate HTML report: $($_.Exception.Message)"
+        Write-ToolkitLog -Message "Failed to generate HTML report: $($_.Exception.Message)" -Level Warning
     }
 }
 
 Write-Host ""
-Write-Host "Summary report generation complete." -ForegroundColor Green
+Write-ToolkitLog -Message "Summary report generation complete." -Level Success
 Write-Host ""

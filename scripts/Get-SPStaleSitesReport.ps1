@@ -59,8 +59,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -87,7 +88,7 @@ try {
     }
 
     $totalSites = @($sites).Count
-    Write-Host "Scanning $totalSites site collections for stale sites..." -ForegroundColor White
+    Write-ToolkitLog -Message "Scanning $totalSites site collections for stale sites..." -Level Info
     $siteCounter = 0
 
     foreach ($site in $sites) {
@@ -97,7 +98,7 @@ try {
                 continue
             }
 
-            Write-Host "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -Level Progress
 
             # Check site collection level
             if ($site.LastContentModifiedDate -lt $cutoffDate) {
@@ -129,7 +130,7 @@ try {
                     AssessmentDate          = $assessmentDate
                 }
 
-                Write-Host "  [STALE] $($site.RootWeb.Title) - $daysSinceModified days ($riskLevel)" -ForegroundColor Yellow
+                Write-ToolkitLog -Message "  [STALE] $($site.RootWeb.Title) - $daysSinceModified days ($riskLevel)" -Level Warning
             }
 
             # Optionally check subsites
@@ -168,7 +169,7 @@ try {
                         }
                     }
                     catch {
-                        Write-Warning "  Failed to process web: $($web.Url) - $($_.Exception.Message)"
+                        Write-ToolkitLog -Message "  Failed to process web: $($web.Url) - $($_.Exception.Message)" -Level Warning
                     }
                     finally {
                         if ($web) { $web.Dispose() }
@@ -177,7 +178,7 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to process site collection: $($site.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process site collection: $($site.Url) - $($_.Exception.Message)" -Level Warning
         }
         finally {
             if ($site) { $site.Dispose() }
@@ -185,7 +186,7 @@ try {
     }
 }
 catch {
-    Write-Host "Error retrieving sites: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving sites: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -193,12 +194,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "stale-sites-report"
     Write-Host ""
-    Write-Host "Stale sites report complete." -ForegroundColor Green
-    Write-Host "Total stale sites found: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Stale sites report complete." -Level Success
+    Write-ToolkitLog -Message "Total stale sites found: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Host "No stale sites found (threshold: $StaleSiteThresholdDays days)." -ForegroundColor Green
+    Write-ToolkitLog -Message "No stale sites found (threshold: $StaleSiteThresholdDays days)." -Level Warning
 }
 
 Write-Host ""

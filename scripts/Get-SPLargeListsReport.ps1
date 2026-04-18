@@ -54,8 +54,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -80,7 +81,7 @@ try {
     }
 
     $totalSites = @($sites).Count
-    Write-Host "Scanning $totalSites site collections for large lists..." -ForegroundColor White
+    Write-ToolkitLog -Message "Scanning $totalSites site collections for large lists..." -Level Info
     $siteCounter = 0
 
     foreach ($site in $sites) {
@@ -90,7 +91,7 @@ try {
                 continue
             }
 
-            Write-Host "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -Level Progress
 
             foreach ($web in $site.AllWebs) {
                 try {
@@ -98,7 +99,7 @@ try {
                         try {
                             if ($list.ItemCount -ge $LargeListThreshold) {
                                 $riskLevel = Get-ListRiskLevel -ItemCount $list.ItemCount
-                                $lastModified = try { $list.LastItemModifiedDate.ToString("yyyy-MM-dd HH:mm:ss") } catch { "N/A" }
+                                $lastModified = try { $list.LastItemModifiedDate.ToString("yyyy-MM-dd HH:mm:ss") } catch { Write-Verbose "Could not retrieve LastItemModifiedDate for list $($list.Title)"; "N/A" }
 
                                 # Determine recommended action based on risk level
                                 $recommendedAction = switch ($riskLevel) {
@@ -125,16 +126,16 @@ try {
 
                                 $results += $result
 
-                                Write-Host "  [LARGE] $($list.Title) - $($list.ItemCount) items ($riskLevel)" -ForegroundColor Yellow
+                                Write-ToolkitLog -Message "  [LARGE] $($list.Title) - $($list.ItemCount) items ($riskLevel)" -Level Warning
                             }
                         }
                         catch {
-                            Write-Warning "    Failed to process list: $($list.Title) - $($_.Exception.Message)"
+                            Write-ToolkitLog -Message "    Failed to process list: $($list.Title) - $($_.Exception.Message)" -Level Warning
                         }
                     }
                 }
                 catch {
-                    Write-Warning "  Failed to process web: $($web.Url) - $($_.Exception.Message)"
+                    Write-ToolkitLog -Message "  Failed to process web: $($web.Url) - $($_.Exception.Message)" -Level Warning
                 }
                 finally {
                     if ($web) { $web.Dispose() }
@@ -142,7 +143,7 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to process site collection: $($site.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process site collection: $($site.Url) - $($_.Exception.Message)" -Level Warning
         }
         finally {
             if ($site) { $site.Dispose() }
@@ -150,7 +151,7 @@ try {
     }
 }
 catch {
-    Write-Host "Error retrieving sites: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving sites: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -158,12 +159,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "large-lists-report"
     Write-Host ""
-    Write-Host "Large lists report complete." -ForegroundColor Green
-    Write-Host "Total large lists found: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Large lists report complete." -Level Success
+    Write-ToolkitLog -Message "Total large lists found: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Host "No large lists found above the threshold of $LargeListThreshold items." -ForegroundColor Green
+    Write-ToolkitLog -Message "No large lists found above the threshold of $LargeListThreshold items." -Level Warning
 }
 
 Write-Host ""

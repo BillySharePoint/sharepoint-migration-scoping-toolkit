@@ -50,8 +50,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -63,7 +64,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 
 # --- Farm-scoped Features ---
-Write-Host "Collecting farm-scoped features..." -ForegroundColor Cyan
+Write-ToolkitLog -Message "Collecting farm-scoped features..." -Level Progress
 try {
     $farmFeatures = Get-SPFeature -Limit All -ErrorAction SilentlyContinue | Where-Object { $_.Scope -eq "Farm" }
     foreach ($feature in $farmFeatures) {
@@ -79,14 +80,14 @@ try {
             AssessmentDate     = $assessmentDate
         }
     }
-    Write-Host "  Found $(@($farmFeatures).Count) farm-scoped features." -ForegroundColor White
+    Write-ToolkitLog -Message "  Found $(@($farmFeatures).Count) farm-scoped features." -Level Info
 }
 catch {
-    Write-Warning "Failed to collect farm-scoped features: $($_.Exception.Message)"
+    Write-ToolkitLog -Message "Failed to collect farm-scoped features: $($_.Exception.Message)" -Level Warning
 }
 
 # --- Web Application-scoped Features ---
-Write-Host "Collecting web application-scoped features..." -ForegroundColor Cyan
+Write-ToolkitLog -Message "Collecting web application-scoped features..." -Level Progress
 try {
     $webApps = if ($WebApplicationUrl) {
         @(Get-SPWebApplication $WebApplicationUrl -ErrorAction Stop)
@@ -117,16 +118,16 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to collect features for web application: $($webApp.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to collect features for web application: $($webApp.Url) - $($_.Exception.Message)" -Level Warning
         }
     }
 }
 catch {
-    Write-Warning "Failed to collect web application-scoped features: $($_.Exception.Message)"
+    Write-ToolkitLog -Message "Failed to collect web application-scoped features: $($_.Exception.Message)" -Level Warning
 }
 
 # --- Site Collection and Web-scoped Features ---
-Write-Host "Collecting site collection and web-scoped features..." -ForegroundColor Cyan
+Write-ToolkitLog -Message "Collecting site collection and web-scoped features..." -Level Progress
 try {
     if ($SiteCollectionUrl) {
         $sites = @(Get-SPSite -Identity $SiteCollectionUrl -ErrorAction Stop)
@@ -148,7 +149,7 @@ try {
                 continue
             }
 
-            Write-Host "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -Level Progress
 
             # Site collection features
             foreach ($feature in $site.Features) {
@@ -169,7 +170,7 @@ try {
                     }
                 }
                 catch {
-                    Write-Warning "    Failed to process site feature: $($_.Exception.Message)"
+                    Write-ToolkitLog -Message "    Failed to process site feature: $($_.Exception.Message)" -Level Warning
                 }
             }
 
@@ -194,12 +195,12 @@ try {
                             }
                         }
                         catch {
-                            Write-Warning "      Failed to process web feature: $($_.Exception.Message)"
+                            Write-ToolkitLog -Message "      Failed to process web feature: $($_.Exception.Message)" -Level Warning
                         }
                     }
                 }
                 catch {
-                    Write-Warning "  Failed to process web features: $($web.Url) - $($_.Exception.Message)"
+                    Write-ToolkitLog -Message "  Failed to process web features: $($web.Url) - $($_.Exception.Message)" -Level Warning
                 }
                 finally {
                     if ($web) { $web.Dispose() }
@@ -207,7 +208,7 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to process site collection: $($site.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process site collection: $($site.Url) - $($_.Exception.Message)" -Level Warning
         }
         finally {
             if ($site) { $site.Dispose() }
@@ -215,19 +216,19 @@ try {
     }
 }
 catch {
-    Write-Warning "Failed to collect site/web features: $($_.Exception.Message)"
+    Write-ToolkitLog -Message "Failed to collect site/web features: $($_.Exception.Message)" -Level Warning
 }
 
 # Export results
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "feature-inventory"
     Write-Host ""
-    Write-Host "Feature inventory complete." -ForegroundColor Green
-    Write-Host "Total features collected: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Feature inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total features collected: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Warning "No features collected."
+    Write-ToolkitLog -Message "No features collected." -Level Warning
 }
 
 Write-Host ""

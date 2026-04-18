@@ -49,8 +49,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -74,7 +75,7 @@ try {
     }
 
     $totalSites = @($sites).Count
-    Write-Host "Scanning $totalSites site collections for workflows..." -ForegroundColor White
+    Write-ToolkitLog -Message "Scanning $totalSites site collections for workflows..." -Level Info
     $siteCounter = 0
 
     foreach ($site in $sites) {
@@ -84,7 +85,7 @@ try {
                 continue
             }
 
-            Write-Host "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -Level Progress
 
             foreach ($web in $site.AllWebs) {
                 try {
@@ -127,12 +128,12 @@ try {
                             }
                         }
                         catch {
-                            Write-Warning "    Failed to check workflows on list: $($list.Title) - $($_.Exception.Message)"
+                            Write-ToolkitLog -Message "    Failed to check workflows on list: $($list.Title) - $($_.Exception.Message)" -Level Warning
                         }
                     }
                 }
                 catch {
-                    Write-Warning "  Failed to process web: $($web.Url) - $($_.Exception.Message)"
+                    Write-ToolkitLog -Message "  Failed to process web: $($web.Url) - $($_.Exception.Message)" -Level Warning
                 }
                 finally {
                     if ($web) { $web.Dispose() }
@@ -140,7 +141,7 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to process site collection: $($site.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process site collection: $($site.Url) - $($_.Exception.Message)" -Level Warning
         }
         finally {
             if ($site) { $site.Dispose() }
@@ -148,7 +149,7 @@ try {
     }
 }
 catch {
-    Write-Host "Error retrieving sites: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving sites: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -156,12 +157,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "workflow-inventory"
     Write-Host ""
-    Write-Host "Workflow inventory complete." -ForegroundColor Green
-    Write-Host "Total workflow associations found: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Workflow inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total workflow associations found: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Host "No workflow associations found." -ForegroundColor Green
+    Write-ToolkitLog -Message "No workflow associations found." -Level Warning
 }
 
 Write-Host ""

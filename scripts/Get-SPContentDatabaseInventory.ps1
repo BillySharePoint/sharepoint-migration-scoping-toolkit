@@ -39,8 +39,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -54,11 +55,11 @@ Write-Host ""
 try {
     $contentDatabases = Get-SPContentDatabase -ErrorAction Stop
 
-    Write-Host "Found $(@($contentDatabases).Count) content databases." -ForegroundColor White
+    Write-ToolkitLog -Message "Found $(@($contentDatabases).Count) content databases." -Level Info
 
     foreach ($db in $contentDatabases) {
         try {
-            Write-Host "Processing content database: $($db.Name)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing content database: $($db.Name)" -Level Progress
 
             # Attempt to get database size
             $dbSizeMB = "NotCollected"
@@ -68,6 +69,7 @@ try {
                 }
             }
             catch {
+                Write-ToolkitLog -Message "Could not retrieve disk size for database: $($db.Name) - $($_.Exception.Message)" -Level Warning
                 $dbSizeMB = "NotCollected"
             }
 
@@ -86,12 +88,12 @@ try {
             $results += $result
         }
         catch {
-            Write-Warning "Failed to process content database: $($db.Name) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process content database: $($db.Name) - $($_.Exception.Message)" -Level Warning
         }
     }
 }
 catch {
-    Write-Host "Error retrieving content databases: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving content databases: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -99,12 +101,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "content-database-inventory"
     Write-Host ""
-    Write-Host "Content database inventory complete." -ForegroundColor Green
-    Write-Host "Total content databases: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Content database inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total content databases: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Warning "No content databases found."
+    Write-ToolkitLog -Message "No content databases found." -Level Warning
 }
 
 Write-Host ""

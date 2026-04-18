@@ -37,8 +37,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -51,8 +52,8 @@ Write-Host ""
 
 try {
     $farm = Get-SPFarm -ErrorAction Stop
-    Write-Host "Farm ID: $($farm.Id)" -ForegroundColor White
-    Write-Host "Build Version: $($farm.BuildVersion)" -ForegroundColor White
+    Write-ToolkitLog -Message "Farm ID: $($farm.Id)" -Level Info
+    Write-ToolkitLog -Message "Build Version: $($farm.BuildVersion)" -Level Info
 
     $configDb = $farm.Name
 
@@ -61,7 +62,7 @@ try {
 
     foreach ($server in $servers) {
         try {
-            Write-Host "Processing server: $($server.DisplayName)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing server: $($server.DisplayName)" -Level Progress
 
             $role = $server.Role
 
@@ -97,12 +98,12 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to process server: $($server.DisplayName) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process server: $($server.DisplayName) - $($_.Exception.Message)" -Level Warning
         }
     }
 }
 catch {
-    Write-Host "Error retrieving farm information: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving farm information: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -110,12 +111,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "farm-inventory"
     Write-Host ""
-    Write-Host "Farm inventory complete." -ForegroundColor Green
-    Write-Host "Total records: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Farm inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total records: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Warning "No farm data collected."
+    Write-ToolkitLog -Message "No farm data collected." -Level Warning
 }
 
 Write-Host ""

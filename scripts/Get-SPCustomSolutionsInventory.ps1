@@ -37,8 +37,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -52,11 +53,11 @@ Write-Host ""
 try {
     $solutions = Get-SPSolution -ErrorAction Stop
 
-    Write-Host "Found $(@($solutions).Count) farm solutions." -ForegroundColor White
+    Write-ToolkitLog -Message "Found $(@($solutions).Count) farm solutions." -Level Info
 
     foreach ($solution in $solutions) {
         try {
-            Write-Host "Processing solution: $($solution.DisplayName)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing solution: $($solution.DisplayName)" -Level Progress
 
             $riskLevel = "High"
             $recommendedAction = "Review customization for SharePoint Online compatibility; replace farm solutions with SPFx, Power Platform, or out-of-the-box alternatives"
@@ -66,7 +67,7 @@ try {
                 $recommendedAction = "Solution is not deployed; verify if still needed before migration"
             }
 
-            $lastOperationTime = try { $solution.LastOperationEndTime.ToString("yyyy-MM-dd HH:mm:ss") } catch { "N/A" }
+            $lastOperationTime = try { $solution.LastOperationEndTime.ToString("yyyy-MM-dd HH:mm:ss") } catch { Write-Verbose "Could not retrieve LastOperationEndTime for $($solution.DisplayName)"; "N/A" }
 
             $result = [PSCustomObject]@{
                 SolutionName                  = $solution.DisplayName
@@ -84,12 +85,12 @@ try {
             $results += $result
         }
         catch {
-            Write-Warning "Failed to process solution: $($solution.DisplayName) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process solution: $($solution.DisplayName) - $($_.Exception.Message)" -Level Warning
         }
     }
 }
 catch {
-    Write-Host "Error retrieving solutions: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving solutions: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -97,12 +98,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "custom-solutions-inventory"
     Write-Host ""
-    Write-Host "Custom solutions inventory complete." -ForegroundColor Green
-    Write-Host "Total solutions found: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Custom solutions inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total solutions found: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Host "No farm solutions found." -ForegroundColor Green
+    Write-ToolkitLog -Message "No farm solutions found." -Level Warning
 }
 
 Write-Host ""

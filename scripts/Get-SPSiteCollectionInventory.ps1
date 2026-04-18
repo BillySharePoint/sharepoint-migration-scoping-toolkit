@@ -51,8 +51,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -66,16 +67,16 @@ Write-Host ""
 try {
     # Get site collections
     if ($WebApplicationUrl) {
-        Write-Host "Scanning web application: $WebApplicationUrl" -ForegroundColor Cyan
+        Write-ToolkitLog -Message "Scanning web application: $WebApplicationUrl" -Level Progress
         $sites = Get-SPSite -WebApplication $WebApplicationUrl -Limit All -ErrorAction Stop
     }
     else {
-        Write-Host "Scanning all web applications..." -ForegroundColor Cyan
+        Write-ToolkitLog -Message "Scanning all web applications..." -Level Progress
         $sites = Get-SPSite -Limit All -ErrorAction Stop
     }
 
     $totalSites = @($sites).Count
-    Write-Host "Found $totalSites site collections to process." -ForegroundColor White
+    Write-ToolkitLog -Message "Found $totalSites site collections to process." -Level Info
     $counter = 0
 
     foreach ($site in $sites) {
@@ -87,7 +88,7 @@ try {
                 continue
             }
 
-            Write-Host "Processing site collection ($counter/$totalSites): $($site.Url)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing site collection ($counter/$totalSites): $($site.Url)" -Level Progress
 
             $storageUsedMB = [math]::Round($site.Usage.Storage / 1MB, 2)
             $storageQuotaMB = if ($site.Quota.StorageMaximumLevel -gt 0) {
@@ -105,8 +106,8 @@ try {
             $rootWebTitle = if ($rootWeb) { $rootWeb.Title } else { "N/A" }
             $rootWebTemplate = if ($rootWeb) { "$($rootWeb.WebTemplate)#$($rootWeb.Configuration)" } else { "N/A" }
 
-            $createdDate = try { $rootWeb.Created.ToString("yyyy-MM-dd") } catch { "N/A" }
-            $lastModified = try { $site.LastContentModifiedDate.ToString("yyyy-MM-dd HH:mm:ss") } catch { "N/A" }
+            $createdDate = try { $rootWeb.Created.ToString("yyyy-MM-dd") } catch { Write-Verbose "Could not retrieve CreatedDate for $($site.Url)"; "N/A" }
+            $lastModified = try { $site.LastContentModifiedDate.ToString("yyyy-MM-dd HH:mm:ss") } catch { Write-Verbose "Could not retrieve LastContentModifiedDate for $($site.Url)"; "N/A" }
 
             $result = [PSCustomObject]@{
                 SiteCollectionUrl       = $site.Url
@@ -135,7 +136,7 @@ try {
             if ($rootWeb) { $rootWeb.Dispose() }
         }
         catch {
-            Write-Warning "Failed to process site collection: $($site.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process site collection: $($site.Url) - $($_.Exception.Message)" -Level Warning
         }
         finally {
             # Dispose of site object
@@ -144,7 +145,7 @@ try {
     }
 }
 catch {
-    Write-Host "Error retrieving site collections: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving site collections: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -152,12 +153,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "site-collection-inventory"
     Write-Host ""
-    Write-Host "Site collection inventory complete." -ForegroundColor Green
-    Write-Host "Total site collections processed: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Site collection inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total site collections processed: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Warning "No site collections found or processed."
+    Write-ToolkitLog -Message "No site collections found or processed." -Level Warning
 }
 
 Write-Host ""

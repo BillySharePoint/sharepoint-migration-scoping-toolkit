@@ -90,13 +90,22 @@ Write-Host "  Full Assessment Runner" -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
 
+# Initialize logging early (before other init steps)
+Initialize-ToolkitLog -OutputPath $OutputPath
+
 # ============================================================
 # Load Configuration
 # ============================================================
 $config = $null
 if ($ConfigPath) {
-    Write-Host "Loading configuration from: $ConfigPath" -ForegroundColor White
-    $config = Import-ToolkitConfig -ConfigPath $ConfigPath
+    Write-ToolkitLog -Message "Loading configuration from: $ConfigPath" -Level Info
+    try {
+        $config = Import-ToolkitConfig -ConfigPath $ConfigPath
+    }
+    catch {
+        Write-ToolkitLog -Message "Failed to load configuration: $($_.Exception.Message)" -Level Error
+        return
+    }
 }
 
 # Merge config with parameters
@@ -125,14 +134,21 @@ if ($settings.ContainsKey("LargeListThreshold")) {
 # ============================================================
 # Validate Environment
 # ============================================================
-Write-Host "Validating SharePoint environment..." -ForegroundColor White
-Initialize-SPSnapin
+Write-ToolkitLog -Message "Validating SharePoint environment..." -Level Info
+try {
+    Initialize-SPSnapin
+}
+catch {
+    Write-ToolkitLog -Message "Failed to initialize SharePoint snap-in: $($_.Exception.Message)" -Level Error
+    return
+}
 
-Write-Host "Initializing output folder..." -ForegroundColor White
+Write-ToolkitLog -Message "Initializing output folder..." -Level Info
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 Write-Host ""
-Write-Host "Assessment Settings:" -ForegroundColor White
+Write-ToolkitLog -Message "Assessment Settings:" -Level Info
 Write-Host "  Output Path:              $OutputPath" -ForegroundColor Gray
 Write-Host "  Web Application:          $(if ($WebApplicationUrl) { $WebApplicationUrl } else { 'All' })" -ForegroundColor Gray
 Write-Host "  Stale Site Threshold:     $StaleSiteThresholdDays days" -ForegroundColor Gray
@@ -176,7 +192,7 @@ function Invoke-AssessmentScript {
     $scriptPath = Join-Path $scriptsDir $ScriptName
 
     if (-not (Test-Path $scriptPath)) {
-        Write-Warning "Script not found: $scriptPath - Skipping $DisplayName"
+        Write-ToolkitLog -Message "Script not found: $scriptPath - Skipping $DisplayName" -Level Warning
         $script:failedReports += $DisplayName
         return
     }
@@ -191,7 +207,7 @@ function Invoke-AssessmentScript {
         $script:completedReports += $DisplayName
     }
     catch {
-        Write-Warning "Failed to run $DisplayName : $($_.Exception.Message)"
+        Write-ToolkitLog -Message "Failed to run $DisplayName : $($_.Exception.Message)" -Level Warning
         $script:failedReports += $DisplayName
     }
 }
@@ -224,7 +240,7 @@ if (-not $SkipPermissions) {
     Invoke-AssessmentScript -ScriptName "Get-SPPermissionsSummary.ps1" -DisplayName "Permissions Summary" -Arguments $args5
 }
 else {
-    Write-Host "`nSkipping Permissions Summary (SkipPermissions flag set)." -ForegroundColor Yellow
+    Write-ToolkitLog -Message "`nSkipping Permissions Summary (SkipPermissions flag set)." -Level Info
 }
 
 # 6. Stale Sites Report
@@ -254,7 +270,7 @@ if (-not $SkipWorkflows) {
     Invoke-AssessmentScript -ScriptName "Get-SPWorkflowInventory.ps1" -DisplayName "Workflow Inventory" -Arguments $args11
 }
 else {
-    Write-Host "`nSkipping Workflow Inventory (SkipWorkflows flag set)." -ForegroundColor Yellow
+    Write-ToolkitLog -Message "`nSkipping Workflow Inventory (SkipWorkflows flag set)." -Level Info
 }
 
 # 12. Custom Solutions Inventory (Phase 2)
@@ -262,7 +278,7 @@ if (-not $SkipCustomSolutions) {
     Invoke-AssessmentScript -ScriptName "Get-SPCustomSolutionsInventory.ps1" -DisplayName "Custom Solutions Inventory" -Arguments @{ OutputPath = $OutputPath }
 }
 else {
-    Write-Host "`nSkipping Custom Solutions Inventory (SkipCustomSolutions flag set)." -ForegroundColor Yellow
+    Write-ToolkitLog -Message "`nSkipping Custom Solutions Inventory (SkipCustomSolutions flag set)." -Level Info
 }
 
 # 13. Feature Inventory (Phase 2 - run if available)
@@ -283,12 +299,12 @@ Write-Host "============================================================" -Foreg
 Write-Host "  Assessment Complete" -ForegroundColor Green
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "  Duration:         $($duration.ToString('hh\:mm\:ss'))" -ForegroundColor White
-Write-Host "  Output folder:    $OutputPath" -ForegroundColor White
-Write-Host "  Reports completed: $($completedReports.Count)" -ForegroundColor Green
+Write-ToolkitLog -Message "Duration: $($duration.ToString('hh\:mm\:ss'))" -Level Info
+Write-ToolkitLog -Message "Output folder: $OutputPath" -Level Info
+Write-ToolkitLog -Message "Reports completed: $($completedReports.Count)" -Level Success
 
 if ($failedReports.Count -gt 0) {
-    Write-Host "  Reports failed:   $($failedReports.Count)" -ForegroundColor Yellow
+    Write-ToolkitLog -Message "Reports failed: $($failedReports.Count)" -Level Warning
     foreach ($failed in $failedReports) {
         Write-Host "    - $failed" -ForegroundColor Yellow
     }
@@ -301,5 +317,5 @@ Get-ChildItem -Path $OutputPath -Filter "*.csv" | Sort-Object Name | ForEach-Obj
 }
 
 Write-Host ""
-Write-Host "Assessment reports are ready for review." -ForegroundColor Green
+Write-ToolkitLog -Message "Assessment reports are ready for review." -Level Success
 Write-Host ""

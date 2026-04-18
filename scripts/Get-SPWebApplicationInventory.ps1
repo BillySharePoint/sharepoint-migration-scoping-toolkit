@@ -38,8 +38,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -54,11 +55,11 @@ try {
     $webApps = Get-SPWebApplication -ErrorAction Stop
     $webAppsIncludingCA = @($webApps) + @(Get-SPWebApplication -IncludeCentralAdministration -ErrorAction SilentlyContinue | Where-Object { $_.IsAdministrationWebApplication })
 
-    Write-Host "Found $(@($webAppsIncludingCA).Count) web applications." -ForegroundColor White
+    Write-ToolkitLog -Message "Found $(@($webAppsIncludingCA).Count) web applications." -Level Info
 
     foreach ($webApp in $webAppsIncludingCA) {
         try {
-            Write-Host "Processing web application: $($webApp.DisplayName)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing web application: $($webApp.DisplayName)" -Level Progress
 
             $authProviders = @()
             foreach ($zone in $webApp.IisSettings.Keys) {
@@ -90,12 +91,12 @@ try {
             $results += $result
         }
         catch {
-            Write-Warning "Failed to process web application: $($webApp.DisplayName) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process web application: $($webApp.DisplayName) - $($_.Exception.Message)" -Level Warning
         }
     }
 }
 catch {
-    Write-Host "Error retrieving web applications: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving web applications: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -103,12 +104,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "web-application-inventory"
     Write-Host ""
-    Write-Host "Web application inventory complete." -ForegroundColor Green
-    Write-Host "Total web applications: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "Web application inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total web applications: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Warning "No web applications found."
+    Write-ToolkitLog -Message "No web applications found." -Level Warning
 }
 
 Write-Host ""

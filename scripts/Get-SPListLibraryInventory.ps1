@@ -61,8 +61,9 @@ else {
 # Initialize SharePoint snap-in
 Initialize-SPSnapin
 
-# Initialize output folder
+# Initialize output folder and logging
 Initialize-OutputFolder -OutputPath $OutputPath
+Initialize-ToolkitLog -OutputPath $OutputPath
 
 $assessmentDate = Get-AssessmentDate
 $results = @()
@@ -76,20 +77,20 @@ Write-Host ""
 try {
     # Get site collections
     if ($SiteCollectionUrl) {
-        Write-Host "Scanning site collection: $SiteCollectionUrl" -ForegroundColor Cyan
+        Write-ToolkitLog -Message "Scanning site collection: $SiteCollectionUrl" -Level Progress
         $sites = @(Get-SPSite -Identity $SiteCollectionUrl -ErrorAction Stop)
     }
     elseif ($WebApplicationUrl) {
-        Write-Host "Scanning web application: $WebApplicationUrl" -ForegroundColor Cyan
+        Write-ToolkitLog -Message "Scanning web application: $WebApplicationUrl" -Level Progress
         $sites = Get-SPSite -WebApplication $WebApplicationUrl -Limit All -ErrorAction Stop
     }
     else {
-        Write-Host "Scanning all web applications..." -ForegroundColor Cyan
+        Write-ToolkitLog -Message "Scanning all web applications..." -Level Progress
         $sites = Get-SPSite -Limit All -ErrorAction Stop
     }
 
     $totalSites = @($sites).Count
-    Write-Host "Found $totalSites site collections to scan." -ForegroundColor White
+    Write-ToolkitLog -Message "Found $totalSites site collections to scan." -Level Info
     $siteCounter = 0
 
     foreach ($site in $sites) {
@@ -99,7 +100,7 @@ try {
                 continue
             }
 
-            Write-Host "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -ForegroundColor Cyan
+            Write-ToolkitLog -Message "Processing site collection ($siteCounter/$totalSites): $($site.Url)" -Level Progress
 
             foreach ($web in $site.AllWebs) {
                 try {
@@ -112,7 +113,7 @@ try {
                                 continue
                             }
 
-                            $lastModified = try { $list.LastItemModifiedDate.ToString("yyyy-MM-dd HH:mm:ss") } catch { "N/A" }
+                            $lastModified = try { $list.LastItemModifiedDate.ToString("yyyy-MM-dd HH:mm:ss") } catch { Write-Verbose "Could not retrieve LastItemModifiedDate for list $($list.Title)"; "N/A" }
 
                             # Get migration concerns
                             $concerns = Get-ListMigrationConcerns `
@@ -150,12 +151,12 @@ try {
                             $results += $result
                         }
                         catch {
-                            Write-Warning "    Failed to process list: $($list.Title) - $($_.Exception.Message)"
+                            Write-ToolkitLog -Message "    Failed to process list: $($list.Title) - $($_.Exception.Message)" -Level Warning
                         }
                     }
                 }
                 catch {
-                    Write-Warning "  Failed to process web: $($web.Url) - $($_.Exception.Message)"
+                    Write-ToolkitLog -Message "  Failed to process web: $($web.Url) - $($_.Exception.Message)" -Level Warning
                 }
                 finally {
                     if ($web) { $web.Dispose() }
@@ -163,7 +164,7 @@ try {
             }
         }
         catch {
-            Write-Warning "Failed to process site collection: $($site.Url) - $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to process site collection: $($site.Url) - $($_.Exception.Message)" -Level Warning
         }
         finally {
             if ($site) { $site.Dispose() }
@@ -171,7 +172,7 @@ try {
     }
 }
 catch {
-    Write-Host "Error retrieving sites: $($_.Exception.Message)" -ForegroundColor Red
+    Write-ToolkitLog -Message "Error retrieving sites: $($_.Exception.Message)" -Level Error
     return
 }
 
@@ -179,12 +180,12 @@ catch {
 if ($results.Count -gt 0) {
     $reportPath = Export-ReportCsv -Data $results -OutputPath $OutputPath -ReportName "list-library-inventory"
     Write-Host ""
-    Write-Host "List and library inventory complete." -ForegroundColor Green
-    Write-Host "Total lists/libraries processed: $($results.Count)" -ForegroundColor White
-    Write-Host "Report saved to: $reportPath" -ForegroundColor White
+    Write-ToolkitLog -Message "List and library inventory complete." -Level Success
+    Write-ToolkitLog -Message "Total lists/libraries processed: $($results.Count)" -Level Info
+    Write-ToolkitLog -Message "Report saved to: $reportPath" -Level Info
 }
 else {
-    Write-Warning "No lists or libraries found or processed."
+    Write-ToolkitLog -Message "No lists or libraries found or processed." -Level Warning
 }
 
 Write-Host ""

@@ -15,6 +15,97 @@
     It does not modify SharePoint content, permissions, or configuration.
 #>
 
+#region Logging
+
+# Module-level log file path (set by Initialize-ToolkitLog)
+$script:ToolkitLogPath = $null
+
+function Initialize-ToolkitLog {
+    <#
+    .SYNOPSIS
+        Initializes file-based logging for the toolkit.
+    .DESCRIPTION
+        Creates a timestamped log file in the specified output folder. All subsequent
+        calls to Write-ToolkitLog will write to both the console and this log file.
+    .PARAMETER OutputPath
+        The folder path where the log file will be created.
+    .PARAMETER LogFileName
+        The base name for the log file (default: 'toolkit-log').
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$OutputPath,
+
+        [string]$LogFileName = "toolkit-log"
+    )
+
+    Initialize-OutputFolder -OutputPath $OutputPath
+    $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
+    $script:ToolkitLogPath = Join-Path $OutputPath "$LogFileName-$timestamp.log"
+
+    $header = @(
+        "========================================",
+        " SharePoint Migration Scoping Toolkit",
+        " Log started: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
+        " Computer: $env:COMPUTERNAME",
+        " User: $env:USERNAME",
+        "========================================"
+    )
+    $header | Out-File -FilePath $script:ToolkitLogPath -Encoding UTF8
+    Write-Host "Log file initialized: $($script:ToolkitLogPath)" -ForegroundColor Green
+}
+
+function Write-ToolkitLog {
+    <#
+    .SYNOPSIS
+        Writes a formatted, timestamped log message to the console and log file.
+    .DESCRIPTION
+        Provides consistent logging across all toolkit scripts. Messages are written
+        to the console with color-coding and to the log file (if initialized via
+        Initialize-ToolkitLog) with timestamps and severity levels.
+    .PARAMETER Message
+        The message to display.
+    .PARAMETER Level
+        The severity level: Info, Warning, Error, Success, Progress.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [ValidateSet("Info", "Warning", "Error", "Success", "Progress")]
+        [string]$Level = "Info"
+    )
+
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $logEntry = "[$timestamp] [$($Level.ToUpper().PadRight(8))] $Message"
+
+    # Write to console with appropriate formatting
+    switch ($Level) {
+        "Info"     { Write-Host $Message -ForegroundColor White }
+        "Warning"  { Write-Warning $Message }
+        "Error"    { Write-Host "[ERROR] $Message" -ForegroundColor Red }
+        "Success"  { Write-Host $Message -ForegroundColor Green }
+        "Progress" { Write-Host $Message -ForegroundColor Cyan }
+    }
+
+    # Write to log file if initialized
+    if ($script:ToolkitLogPath -and (Test-Path $script:ToolkitLogPath)) {
+        $logEntry | Out-File -FilePath $script:ToolkitLogPath -Append -Encoding UTF8
+    }
+}
+
+function Get-ToolkitLogPath {
+    <#
+    .SYNOPSIS
+        Returns the current log file path, or $null if logging is not initialized.
+    #>
+    return $script:ToolkitLogPath
+}
+
+#endregion
+
 #region SharePoint Snap-in
 
 function Initialize-SPSnapin {
@@ -28,10 +119,11 @@ function Initialize-SPSnapin {
     if ((Get-PSSnapin -Name Microsoft.SharePoint.PowerShell -ErrorAction SilentlyContinue) -eq $null) {
         try {
             Add-PSSnapin Microsoft.SharePoint.PowerShell -ErrorAction Stop
-            Write-Host "SharePoint PowerShell snap-in loaded successfully." -ForegroundColor Green
+            Write-ToolkitLog -Message "SharePoint PowerShell snap-in loaded successfully." -Level Success
         }
         catch {
-            throw "Failed to load SharePoint PowerShell snap-in. Ensure this script is run on a SharePoint server with the Management Shell installed. Error: $($_.Exception.Message)"
+            Write-ToolkitLog -Message "Failed to load SharePoint PowerShell snap-in. Ensure this script is run on a SharePoint server with the Management Shell installed. Error: $($_.Exception.Message)" -Level Error
+            throw
         }
     }
     else {
@@ -58,7 +150,7 @@ function Initialize-OutputFolder {
 
     if (!(Test-Path $OutputPath)) {
         New-Item -ItemType Directory -Path $OutputPath -Force | Out-Null
-        Write-Host "Created output folder: $OutputPath" -ForegroundColor Green
+        Write-ToolkitLog -Message "Created output folder: $OutputPath" -Level Success
     }
     else {
         Write-Verbose "Output folder already exists: $OutputPath"
@@ -114,7 +206,7 @@ function Export-ReportCsv {
     $filePath = Join-Path $OutputPath $fileName
 
     $Data | Export-Csv -Path $filePath -NoTypeInformation -Encoding UTF8
-    Write-Host "Report exported: $filePath" -ForegroundColor Green
+    Write-ToolkitLog -Message "Report exported: $filePath" -Level Success
     return $filePath
 }
 
@@ -141,7 +233,7 @@ function Import-ToolkitConfig {
 
     try {
         $config = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json
-        Write-Host "Configuration loaded from: $ConfigPath" -ForegroundColor Green
+        Write-ToolkitLog -Message "Configuration loaded from: $ConfigPath" -Level Success
         return $config
     }
     catch {
@@ -374,37 +466,6 @@ function Get-ListMigrationConcerns {
 
 #endregion
 
-#region Logging
-
-function Write-ToolkitLog {
-    <#
-    .SYNOPSIS
-        Writes a formatted log message to the console.
-    .PARAMETER Message
-        The message to display.
-    .PARAMETER Level
-        The severity level: Info, Warning, Error, Success, Progress.
-    #>
-    [CmdletBinding()]
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Message,
-
-        [ValidateSet("Info", "Warning", "Error", "Success", "Progress")]
-        [string]$Level = "Info"
-    )
-
-    switch ($Level) {
-        "Info" { Write-Host $Message -ForegroundColor White }
-        "Warning" { Write-Warning $Message }
-        "Error" { Write-Host $Message -ForegroundColor Red }
-        "Success" { Write-Host $Message -ForegroundColor Green }
-        "Progress" { Write-Host $Message -ForegroundColor Cyan }
-    }
-}
-
-#endregion
-
 #region Assessment Date
 
 function Get-AssessmentDate {
@@ -419,6 +480,9 @@ function Get-AssessmentDate {
 
 # Export module members
 Export-ModuleMember -Function @(
+    'Initialize-ToolkitLog',
+    'Write-ToolkitLog',
+    'Get-ToolkitLogPath',
     'Initialize-SPSnapin',
     'Initialize-OutputFolder',
     'Get-TimestampedFileName',
@@ -430,6 +494,5 @@ Export-ModuleMember -Function @(
     'Get-StaleSiteRiskLevel',
     'Get-PermissionRiskLevel',
     'Get-ListMigrationConcerns',
-    'Write-ToolkitLog',
     'Get-AssessmentDate'
 )
