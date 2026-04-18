@@ -1,0 +1,5 @@
+"FarmId","BuildVersion","ConfigDatabaseName","ServerName","ServerRole","ServiceName","ServiceStatus","AssessmentDate"
+"a1b2c3d4-e5f6-7890-abcd-ef1234567890","16.0.10399.20000","SharePoint_Config","SP-APP01","Application","Microsoft SharePoint Foundation Web Application","Online","2026-04-17"
+"a1b2c3d4-e5f6-7890-abcd-ef1234567890","16.0.10399.20000","SharePoint_Config","SP-APP01","Application","SharePoint Server Search","Online","2026-04-17"
+"a1b2c3d4-e5f6-7890-abcd-ef1234567890","16.0.10399.20000","SharePoint_Config","SP-WFE01","WebFrontEnd","Microsoft SharePoint Foundation Web Application","Online","2026-04-17"
+"a1b2c3d4-e5f6-7890-abcd-ef1234567890","16.0.10399.20000","SharePoint_Config","SP-WFE01","WebFrontEnd","Claims to Windows Token Service","Online","2026-04-17"

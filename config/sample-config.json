@@ -1,0 +1,14 @@
+{
+    "OutputPath": ".\\output",
+    "WebApplicationUrl": "https://sharepoint.contoso.com",
+    "IncludeSubsites": true,
+    "IncludePersonalSites": false,
+    "StaleSiteThresholdDays": 365,
+    "LargeListThreshold": 5000,
+    "VeryLargeListThreshold": 100000,
+    "UniquePermissionWarningThreshold": 50,
+    "UniquePermissionHighRiskThreshold": 100,
+    "ExportCsv": true,
+    "ExportHtml": false,
+    "ExportExcel": false
+}

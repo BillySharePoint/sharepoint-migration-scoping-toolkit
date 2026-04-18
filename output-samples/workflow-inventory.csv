@@ -1,0 +1,4 @@
+"SiteCollectionUrl","WebUrl","ListTitle","WorkflowName","WorkflowAssociationCount","WorkflowType","Enabled","RiskLevel","RecommendedAction","AssessmentDate"
+"https://sharepoint.contoso.com/sites/legal","https://sharepoint.contoso.com/sites/legal","Contracts","Contract Approval","1","List Association","True","High","Review workflow logic; validate business process owner; include workflow testing in UAT","2026-04-17"
+"https://sharepoint.contoso.com/sites/hr","https://sharepoint.contoso.com/sites/hr","Documents","Document Review","1","List Association","True","High","Review workflow logic; rebuild using Power Automate where appropriate","2026-04-17"
+"https://sharepoint.contoso.com/sites/finance","https://sharepoint.contoso.com/sites/finance","Invoices","Invoice Approval","1","List Association","False","High","Review workflow logic; validate business process owner; include workflow testing in UAT","2026-04-17"

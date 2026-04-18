@@ -1,0 +1,7 @@
+"ObjectType","ObjectUrl","ObjectTitle","RiskCategory","RiskLevel","RiskReason","RecommendedAction","AssessmentDate"
+"SiteCollection","https://sharepoint.contoso.com/sites/hr","HR Portal","Stale Site","Medium","No activity in 420 days","Confirm with business owner before migration","2026-04-17"
+"Library","https://sharepoint.contoso.com/sites/hr/Documents","HR Documents","Large Library","High","Library contains 245000 items","Review migration batching strategy and run test migration","2026-04-17"
+"Web","https://sharepoint.contoso.com/sites/finance","Finance","Unique Permissions","Medium","Site has unique permissions with 15 role assignments","Include in permission validation testing","2026-04-17"
+"Library","https://sharepoint.contoso.com/sites/finance/ConfidentialReports","Confidential Reports","Complex Permissions","High","Library has 65 role assignments","Simplify permissions before migration where possible","2026-04-17"
+"SiteCollection","https://sharepoint.contoso.com/sites/archive2020","2020 Archive","Stale Site","Critical","No activity in 1558 days","Archive candidate; business confirmation required before migration","2026-04-17"
+"List","https://sharepoint.contoso.com/sites/finance/Lists/Invoices","Invoices","Large List","Medium","List contains 8500 items","Review views, indexing, and migration approach","2026-04-17"

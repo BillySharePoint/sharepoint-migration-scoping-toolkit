@@ -1,0 +1,4 @@
+"WebApplicationName","WebApplicationUrl","ApplicationPool","AuthenticationProvider","ContentDatabaseCount","SiteCollectionCount","MaximumFileSizeMB","AssessmentDate"
+"SharePoint - 443","https://sharepoint.contoso.com","SharePoint - 443","Claims Based Authentication","4","128","250","2026-04-17"
+"MySites - 443","https://mysites.contoso.com","MySites - 443","Claims Based Authentication","2","350","250","2026-04-17"
+"SharePoint Central Administration v4","https://sp-app01:2016","SharePoint Central Administration v4 AppPool","Claims Based Authentication","1","1","250","2026-04-17"

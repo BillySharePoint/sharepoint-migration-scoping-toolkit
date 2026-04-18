@@ -1,0 +1,5 @@
+"ContentDatabaseName","WebApplicationUrl","DatabaseServer","CurrentSiteCount","WarningSiteCount","MaximumSiteCount","DatabaseSizeMB","Status","AssessmentDate"
+"WSS_Content_01","https://sharepoint.contoso.com","SQL01","45","40","50","25600.50","Online","2026-04-17"
+"WSS_Content_02","https://sharepoint.contoso.com","SQL01","38","40","50","18432.00","Online","2026-04-17"
+"WSS_Content_03","https://sharepoint.contoso.com","SQL02","30","40","50","12288.75","Online","2026-04-17"
+"WSS_Content_04","https://sharepoint.contoso.com","SQL02","15","40","50","8192.00","Online","2026-04-17"
