@@ -268,3 +268,11 @@ This project is licensed under the [MIT License](LICENSE).
 ## Disclaimer
 
 This project is provided as-is and should be tested in a non-production or controlled environment before being used in production. Always review scripts before running them in your SharePoint farm. The toolkit is designed to perform read-only discovery. It should not modify SharePoint content, permissions, configuration, or site structure.
+
+---
+
+## Related
+
+- Article: [Introducing the SharePoint Migration Scoping Toolkit](https://www.billyperalta.com/blog/sharepoint-migration-scoping-toolkit/?utm_source=github&utm_medium=referral&utm_campaign=sharepoint_migration_scoping_toolkit&utm_content=readme_article)
+- Scoping a migration before an RFP or SOW? See the [SharePoint migration assessment](https://www.billyperalta.com/services/sharepoint-migration-assessment/?utm_source=github&utm_medium=referral&utm_campaign=sharepoint_migration_scoping_toolkit&utm_content=readme_service_cta).
+- Author: [Billy Peralta](https://www.billyperalta.com/?utm_source=github&utm_medium=referral&utm_campaign=sharepoint_migration_scoping_toolkit), SharePoint and Microsoft 365 consultant, Vancouver, BC
